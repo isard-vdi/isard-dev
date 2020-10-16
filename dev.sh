@@ -3,7 +3,7 @@
 # Load the environment variables
 [ -f .env ] && export $(grep -v '^#' .env | xargs)
 
-if [ -z "$GITHUB_USER" ] || [ "$GITHUB_USER" == "example"  ]; then
+if [ -z "$GITHUB_USER" ] || [ "$GITHUB_USER" = "example"  ]; then
     echo "Please, set the configuration values in the '.env' file. You can find a example in the 'env.example' file"
     exit 1
 fi
