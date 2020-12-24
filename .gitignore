@@ -1,2 +1,12 @@
-files/
+# Never commit secrets
 .env
+
+# Ignore everything under files, but keep the home and nix directories
+files/*
+!files/home
+files/home/*
+!files/home/.gitkeep
+!files/nix
+files/nix/*
+!files/nix/.gitkeep
+
