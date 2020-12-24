@@ -33,7 +33,7 @@
 				   (libvirt-configuration
 				     (unix-sock-group "libvirt")))
 			  (service nix-service-type)
-			  (service postgresql-service-type)
+			  (postgresql-service)
 			  (service redis-service-type))
 		    %base-services))
   (packages (append (map specification->package
@@ -72,6 +72,10 @@ if [ -f ~/.bashrc ]; then . ~/.bashrc; fi\n"))
   # Bash initialization for interactive non-login shells and
   # for remote shells (info \"(bash) Bash Startup Files\").
 
+  if [ \"$USER\" == \"root\" ]; then
+        su - dev ; exit
+  fi
+
   # Export 'SHELL' to child processes.  Programs such as 'screen'
   # honor it and otherwise use /bin/sh.
   export SHELL
@@ -95,7 +99,7 @@ if [ -f ~/.bashrc ]; then . ~/.bashrc; fi\n"))
   then
       PS1='\\u@\\h \\w [env]\\$ '
   else
-      PS1='\\u@\\h \\w\\$ '
+      PS1='\\e[1;36m\\u@\\h \\w\\$ \\e[m'
   fi
   alias ls='ls -p --color=auto'
   alias ll='ls -l'
@@ -109,22 +113,27 @@ if [ -f ~/.bashrc ]; then . ~/.bashrc; fi\n"))
   # env setup
   source /run/current-system/profile/etc/profile.d/nix.sh
   export PATH=$PATH:~/.nix-profile/bin
+  [ -f /data/dev/.env ] && export $(grep -v '^#' /data/dev/.env | xargs)
 
-  if [ ! -f ~/.isard-dev-configured ]; then
-  	sudo chown -R $(whoami):users /data/dev
+  if [ -e /data/$(whoami)/.config ]; then
+    if [ ! -e ~/.config ]; then
+      ln -s /data/$(whoami)/.config ~/.config
+    fi 
+  fi
 
-    mkdir -p /data/$(whoami)/isard
-    mkdir -p /data/$(whoami)/isard-dev
+  if [ ! -f ~/.config/.isard-dev-configured ]; then
+    sudo chown -R $(whoami):users /data/dev
+
     mkdir -p /data/$(whoami)/.config/VSCodium/User
+    ln -s /data/$(whoami)/.config ~/.config
+    touch /data/$(whoami)/.nix-channels
+    ln -s /data/$(whoami)/.nix-channels ~/.nix-channels
+    mkdir ~/dev
 
-    mkdir ~/.config
-
-    ln -s /data/$(whoami)/isard isard
-    ln -s /data/$(whoami)/isard-dev isard-dev
-    ln -s /data/$(whoami)/.config/VSCodium ~/.config/VSCodium
-
-	guix pull
-	hash guix
+    for dir in .cache .local .vscode-oss go; do
+      mkdir -p /data/$(whoami)/$dir
+      ln -s /data/$(whoami)/$dir ~/$dir
+    done
 
 	nix-channel --add https://nixos.org/channels/nixos-20.03 nixos
 	nix-channel --update
@@ -163,21 +172,25 @@ if [ -f ~/.bashrc ]; then . ~/.bashrc; fi\n"))
 	codium --install-extension redhat.vscode-yaml
 	codium --install-extension teabyii.ayu
 	codium --install-extension hediet.vscode-drawio
+	
+	go get -v golang.org/x/tools/gopls
 
 	mkdir -p ~/.local/share
 	ln -s /run/current-system/profile/share/fonts ~/.local/share/fonts
 
 	echo \"[user]
-	name = ${GITHUB_NAME}
-	email = ${GITHUB_EMAIL}\" > ${HOME}/.gitconfig
+	name = ${GITLAB_NAME}
+	email = ${GITLAB_EMAIL}\" > ${HOME}/.gitconfig
 
-	for repo in isard isard-dev; do
+	cd dev
+
+	for repo in isardvdi isardvdi-dev; do
         if [ ! -d ${repo}/.git ]; then
-            git clone https://github.com/${GITHUB_USER}/${repo}
+            git clone https://gitlab.com/${GITLAB_USER}/${repo}
             cd ${repo}
 
-            git config url.\"https://${GITHUB_USER}@github.com\".InsteadOf \"https://github.com\"
-            git remote add upstream https://github.com/isard-vdi/${repo}
+            git config url.\"https://${GITLAB_USER}@gitlab.com\".InsteadOf \"https://gitlab.com\"
+            git remote add upstream https://gitlab.com/isard/${repo}
 
             git flow init -d
 
@@ -187,6 +200,18 @@ if [ -f ~/.bashrc ]; then . ~/.bashrc; fi\n"))
         fi
 	done
 
-	touch ~/.isard-dev-configured
+	cd ..
+
+	touch ~/.config/.isard-dev-configured
+  else
+    for dir in .cache .local .nix-channels .vscode-oss go; do
+      if [ ! -e \"~/$dir\" ]; then
+        ln -s /data/$(whoami)/$dir ~/$dir
+      fi 
+    done
+
+    if [ ! -e ~/.nix-profile ]; then
+	ln -s /nix/var/nix/profiles/per-user/$(whoami)/profile ~/.nix-profile
+    fi 
   fi
   \n")))))
