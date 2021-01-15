@@ -1,6 +1,16 @@
 # isard-dev
 Development environment for Isard
 
+## VM Image
+
+In order to generate a VM image, you need to run:
+
+```sh
+guix system vm-image isard-x.scm -t qcow2 --image-size=100G
+```
+
+The default credentials are `dev`, `dev` 
+
 ## Usage
 
 In order to use isard-dev you'll need to have `docker` installed and the `isard-vdi/isard` and `isard-vdi/isard-dev` directories forked. Then you need to run:
